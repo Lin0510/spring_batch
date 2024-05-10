@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: agent2
+server:
+  port: 8082
+  shutdown: graceful
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+    tags:
+      application: ${spring.application.name}

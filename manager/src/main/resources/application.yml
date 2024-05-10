@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: manager
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+    tags:
+      application: ${spring.application.name}
+logging:
+  level:
+    root: debug
+  pattern:
+#    level: trace_id:%.16(%mdc{trace_id}) span_id:%mdc{span_id} trace_flags:%mdc{trace_flags} %5p
