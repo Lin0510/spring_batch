@@ -1,13 +1,10 @@
-package com.example.agent2;
+package com.example.agent;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class Agent2ApplicationTests {
+class AgentApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
 
 }

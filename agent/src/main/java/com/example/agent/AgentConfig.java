@@ -1,4 +1,4 @@
-package com.example.agent1;
+package com.example.agent;
 
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
-public class Agent1Config {
+public class AgentConfig {
 
     @Autowired
     JobRepository jobRepository;
@@ -21,7 +21,7 @@ public class Agent1Config {
     PlatformTransactionManager transactionManager;
 
     @Bean
-    public Tasklet tasklet() {
+    public Tasklet tasklet1() {
         return (contribution, chunkContext) -> {
             System.out.println("Executing Agent 1 Job....");
             return RepeatStatus.FINISHED;
@@ -30,14 +30,37 @@ public class Agent1Config {
 
     public Step agent1Step() {
         return new StepBuilder("agent1Step", jobRepository)
-                .tasklet(tasklet(), transactionManager)
+                .tasklet(tasklet1(), transactionManager)
                 .build();
     }
 
     @Bean
-    public Job agent1Job() {
-        return new JobBuilder("agent1Job", jobRepository)
+    public Job job1() {
+        return new JobBuilder("job1", jobRepository)
                 .start(agent1Step())
                 .build();
     }
+    @Bean
+    public Tasklet tasklet2() {
+        return (contribution, chunkContext) -> {
+            System.out.println("Executing Agent 2 Job....");
+            return RepeatStatus.CONTINUABLE;
+        };
+    }
+
+    @Bean
+    public Step agent2Step() {
+        return new StepBuilder("agent2Step", jobRepository)
+                .tasklet(tasklet2(), transactionManager)
+                .build();
+    }
+
+    @Bean
+    public Job job2() {
+        return new JobBuilder("job2", jobRepository)
+                .start(agent2Step())
+                .build();
+    }
+
+
 }

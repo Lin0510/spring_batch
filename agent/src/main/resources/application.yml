@@ -1,8 +1,9 @@
 spring:
   application:
-    name: agent2
+    name: agent
+
 server:
-  port: 8082
+  port: 8081
   shutdown: graceful
 management:
   endpoints:
@@ -11,3 +12,7 @@ management:
         include: '*'
     tags:
       application: ${spring.application.name}
+logging:
+  level:
+    root: INFO
+#  pattern:
