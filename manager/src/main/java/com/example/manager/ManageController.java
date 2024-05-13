@@ -1,90 +1,109 @@
 package com.example.manager;
 
-import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 public class ManageController {
     private static final Logger log = LoggerFactory.getLogger(ManageController.class);
-    private Process agentProcess;
+    private Map<String, Process> runningProcesses = new ConcurrentHashMap<>();
+    private Map<String, String> runningJobPort = new ConcurrentHashMap<>();
+    private AtomicInteger port = new AtomicInteger(8081);
 
-
-    @GetMapping("/start/agent/{jobName}")
-    public String startAgent(@PathVariable String jobName) {
+    @GetMapping("/start/agent/{id}")
+    public String startAgent(@PathVariable String id) {
+        Runtime.getRuntime().addShutdownHook(
+                new Thread(this::cleanup)
+        );
         log.debug("----------------startAgent----------------");
-        String cmd = "java -jar D:/Lin/Documents/Studio/project/batch/agent/target/agent.jar --spring.batch.job.name=" + jobName;
-        if (ObjectUtils.isNotEmpty(agentProcess)) {
-            destroyProcess();
-        }
+        String currentPort = String.valueOf(port);
         try {
-            agentProcess = Runtime.getRuntime().exec(cmd);
+            log.error("port: {}", currentPort);
+            Process process = new ProcessBuilder()
+                    .command("java", "-jar", "D:/Lin/Documents/Studio/project/batch/agent/target/agent.jar",
+                            "--spring.batch.job.name=" + id, "--server.port=" + port.getAndIncrement())
+                    .start();
+            runningProcesses.put(id + "-" + currentPort, process);
+            runningJobPort.put(id, currentPort);
 
-            ExecutorService executor = Executors.newFixedThreadPool(2);
+            monitorProcessOutput(process);
 
-            executor.submit(() -> {
-                try (BufferedReader in = new BufferedReader(new InputStreamReader(agentProcess.getInputStream()))) {
-                    String line;
-                    while ((line = in.readLine()) != null) {
-                        log.info(line);
-                    }
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
-
-            executor.submit(() -> {
-                try (BufferedReader err = new BufferedReader(new InputStreamReader(agentProcess.getErrorStream()))) {
-                    String line;
-                    while ((line = err.readLine()) != null) {
-                        log.error("err: {}", line);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
-
-            int exitCode = agentProcess.waitFor();
-            log.debug("AgentProcess exited with code: {}", exitCode);
-
-            executor.shutdown();
-
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+            return "start agent JobName = " + id + ", port: " + currentPort;
+        } catch (IOException e) {
+            log.error("start process fail: {}", e.getMessage());
+            return "start fail";
         }
-
-        return "啟動 agent JobName = " + jobName;
     }
 
-    public void destroyProcess() {
-        ProcessHandle processHandle = agentProcess.toHandle();
-        processHandle.destroyForcibly();
-        printProcessInfo(processHandle);
+    private void monitorProcessOutput(Process process) {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        executor.submit(() -> {
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = in.readLine()) != null) {
+                    log.info(line);
+                }
+            } catch (IOException e) {
+                log.error("Read process output exception: {}", e.getMessage());
+            }
+        });
+
+        executor.submit(() -> {
+            try (BufferedReader err = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                String line;
+                while ((line = err.readLine()) != null) {
+                    log.error("process output exception: {}", line);
+                }
+            } catch (IOException e) {
+                log.error("Read process output exception: {}", e.getMessage());
+            }
+        });
+
+        executor.shutdown();
     }
 
-    private void printProcessInfo(ProcessHandle processHandle) {
-        log.debug("---------");
-        log.debug("Id: {}", processHandle.pid());
-        log.debug("isAlive(): {}", processHandle.isAlive());
-        log.debug("isSupportsNormalTermination(): {}", processHandle.supportsNormalTermination());
-
-        ProcessHandle.Info processInfo = processHandle.info();
-        log.debug("Info: {}", processInfo);
-        log.debug("Info arguments().isPresent(): {}", processInfo.arguments().isPresent());
-        log.debug("Info command().isPresent(): {}", processInfo.command().isPresent());
-        log.debug("Info totalCpuDuration().isPresent(): {}", processInfo.totalCpuDuration().isPresent());
-        log.debug("Info user().isPresent(): {}", processInfo.user().isPresent());
+    public void cleanup() {
+        log.debug("------------clean up------------");
+        for (Map.Entry<String, Process> entry : runningProcesses.entrySet()) {
+            Process process = entry.getValue();
+            if (process.isAlive()) {
+                process.destroyForcibly();
+                log.info("destroy process: {}", entry.getKey());
+            }
+        }
     }
+
+    @GetMapping("/stop/agent/{id}")
+    public void stopJob(@PathVariable String id) {
+        String port = runningJobPort.get(id);
+        RestTemplate restTemplate = new RestTemplate();
+        String url = "http://localhost:%s/api/agent/stop/%s".formatted(port, id);
+        log.debug("port: {}, jobName: {}", port, id);
+        restTemplate.exchange(
+                String.format(url, port, id),
+                HttpMethod.GET,
+                null,
+                Void.class
+        );
+    }
+
 
 }

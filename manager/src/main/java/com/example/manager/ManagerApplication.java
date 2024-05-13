@@ -39,11 +39,6 @@ public class ManagerApplication {
                         "----------------------------------------------------------\n" +
                         "\tApplication '{}' is running! Access URLs:\n" +
                         "\tLocal:         {}\n" +
-                        "\tManagement:    {}/management\n" +
-                        "\tApiDocs:       {}/v3/api-docs\n" +
-                        "\tSwaggerUI:     https://petstore.swagger.io?url={}/v3/api-docs\n" +
-                        "\tProfile(s):    {}\n" +
-                        "\tConfig Server: {}\n" +
                         "----------------------------------------------------------",
                 applicationName, baseUrl, baseUrl, baseUrl, baseUrl, profiles, configServerStatus);
     }

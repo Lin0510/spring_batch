@@ -24,7 +24,6 @@ public class AgentController {
         for (Long executionId : executionIds) {
             jobOperator.stop(executionId);
         }
-
     }
 
 }
