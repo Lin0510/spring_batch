@@ -13,3 +13,7 @@ logging:
     root: debug
   pattern:
 #    level: trace_id:%.16(%mdc{trace_id}) span_id:%mdc{span_id} trace_flags:%mdc{trace_flags} %5p
+
+# agent jar path
+agent:
+  jar-path: "D:/Lin/Documents/Studio/project/batch/agent/target/agent.jar"
