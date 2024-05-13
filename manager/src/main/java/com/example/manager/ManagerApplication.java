@@ -27,20 +27,18 @@ public class ManagerApplication {
     }
 
     private static void logApplicationStartup(Environment env) {
-
-        String[] profiles = env.getActiveProfiles().length == 0 ? env.getDefaultProfiles() : env.getActiveProfiles();
         String applicationName = env.getProperty("spring.application.name");
         String protocol = Optional.ofNullable(env.getProperty("server.ssl.key-store")).map(key -> "https").orElse("http");
         String serverPort = env.getProperty("server.port") == null ? "8080" : env.getProperty("server.port");
         String contextPath = Optional.ofNullable(env.getProperty("server.servlet.context-path")).filter(StringUtils::isNotBlank).orElse("/");
         String baseUrl = protocol + "://localhost:" + serverPort + contextPath;
-        String configServerStatus = StringUtils.defaultIfEmpty(env.getProperty("configserver.status"), "Not found or not setup for this application");
-        log.info("\n" +
-                        "----------------------------------------------------------\n" +
-                        "\tApplication '{}' is running! Access URLs:\n" +
-                        "\tLocal:         {}\n" +
-                        "----------------------------------------------------------",
-                applicationName, baseUrl, baseUrl, baseUrl, baseUrl, profiles, configServerStatus);
+        log.info("""
+                                
+                ----------------------------------------------------------
+                	Application '{}' is running! Access URLs:
+                	Local:         {}
+                ----------------------------------------------------------
+                """, applicationName, baseUrl);
     }
 
 }
