@@ -33,12 +33,17 @@ public class ManageController {
                 new Thread(this::cleanup)
         );
         log.debug("----------------startAgent----------------");
-        String currentPort = String.valueOf(port);
+        String currentPort;
         try {
+            if (Objects.isNull(runningJobPort.get(id))) {
+                currentPort = String.valueOf(port.getAndIncrement());
+            } else {
+                currentPort = runningJobPort.get(id);
+            }
             log.error("port: {}", currentPort);
             Process process = new ProcessBuilder()
                     .command("java", "-jar", "D:/Lin/Documents/Studio/project/batch/agent/target/agent.jar",
-                            "--spring.batch.job.name=" + id, "--server.port=" + port.getAndIncrement())
+                            "--spring.batch.job.name=" + id, "--server.port=" + currentPort)
                     .start();
             runningProcesses.put(id + "-" + currentPort, process);
             runningJobPort.put(id, currentPort);
